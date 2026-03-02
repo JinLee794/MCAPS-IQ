@@ -1,0 +1,12 @@
+{
+  "servers": {
+    "oil": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["dist/index.js"],
+      "env": {
+        "OBSIDIAN_VAULT_PATH": "/Users/jinle/Documents/Obsidian/Jin @ Microsoft"
+      }
+    }
+  }
+}
