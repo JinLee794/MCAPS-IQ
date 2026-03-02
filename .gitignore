@@ -35,3 +35,4 @@ temp/
 .agent-memory/
 
 .vscode/mcp.json
+.copilot
