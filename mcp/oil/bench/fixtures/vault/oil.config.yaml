@@ -1,0 +1,27 @@
+schema:
+  customers_root: "Customers/"
+  people_root: "People/"
+  meetings_root: "Meetings/"
+  projects_root: "Projects/"
+  weekly_root: "Weekly/"
+  templates_root: "Templates/"
+  agent_log: "_agent-log/"
+  connect_hooks_backup: ".connect/hooks/hooks.md"
+
+search:
+  default_tier: fuzzy
+  semantic_model: local
+  semantic_index_file: "_oil-index.json"
+  graph_index_file: "_oil-graph.json"
+
+write_gate:
+  diff_format: markdown
+  log_all_writes: true
+  batch_diff_max_notes: 50
+  auto_confirmed_sections:
+    - Agent Insights
+    - Connect Hooks
+  auto_confirmed_operations:
+    - log_agent_action
+    - capture_connect_hook
+    - patch_note_designated

@@ -1,0 +1,41 @@
+{
+  "name": "obsidian-intelligence-layer",
+  "version": "0.1.0",
+  "description": "Obsidian Intelligence Layer — Knowledge Layer MCP Server for AI Agent Workflows",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "oil-server": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/index.js",
+    "lint": "tsc --noEmit",
+    "bench": "vitest run",
+    "bench:watch": "vitest"
+  },
+  "keywords": [
+    "mcp",
+    "obsidian",
+    "knowledge-layer",
+    "ai-agent"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "chokidar": "^4.0.3",
+    "fuse.js": "^7.1.0",
+    "gray-matter": "^4.0.3",
+    "yaml": "^2.7.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.0",
+    "@vitest/runner": "^4.0.18",
+    "typescript": "^5.7.3",
+    "vitest": "^4.0.18"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
