@@ -29,7 +29,7 @@ let counter = 0;
  *   'rejected' (op)           – operation rejected by human
  *   'executed' (op, result)   – operation executed against CRM
  *   'expired'  (op)           – operation expired via TTL
- *   'error'    (op, error)    – execution failed
+ *   'op:error' (op, error)    – execution failed
  */
 export class ApprovalQueue extends EventEmitter {
   /** @type {Map<string, StagedOperation>} */
@@ -107,7 +107,7 @@ export class ApprovalQueue extends EventEmitter {
   markFailed(id, err) {
     const op = this.#ops.get(id);
     if (!op) return null;
-    this.emit('error', op, err);
+    this.emit('op:error', op, err);
     // Keep in map so caller can retry or cancel
     op.status = 'pending';
     return op;

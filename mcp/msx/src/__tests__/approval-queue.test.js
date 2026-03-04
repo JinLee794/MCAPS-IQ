@@ -145,7 +145,6 @@ describe('ApprovalQueue', () => {
     it('resets op to pending for retry', () => {
       const op = queue.stage(sampleOp());
       queue.approve(op.id);
-      queue.on('error', () => {}); // prevent unhandled error throw
       queue.markFailed(op.id, 'CRM unavailable');
       const retrieved = queue.get(op.id);
       expect(retrieved.status).toBe('pending');
@@ -153,7 +152,7 @@ describe('ApprovalQueue', () => {
 
     it('emits error event', () => {
       const handler = vi.fn();
-      queue.on('error', handler);
+      queue.on('op:error', handler);
       const op = queue.stage(sampleOp());
       queue.markFailed(op.id, 'fail');
       expect(handler).toHaveBeenCalledWith(

@@ -1212,8 +1212,16 @@ export function registerTools(server, crmClient) {
     },
     async ({ id }) => {
       const queue = getApprovalQueue();
-      const op = queue.approve(id);
-      if (!op) return error(`Operation ${id} not found, already executed, or expired.`);
+      // approve() expects 'pending'; also accept 'approved' (orphaned from a failed batch)
+      let op = queue.approve(id);
+      if (!op) {
+        const existing = queue.get(id);
+        if (existing && existing.status === 'approved') {
+          op = existing; // resume orphaned approved op
+        } else {
+          return error(`Operation ${id} not found, already executed, or expired.`);
+        }
+      }
 
       // Pre-execution integrity check for milestone updates
       if (op.type === 'update_milestone' && op.identity?.milestoneNumber) {
@@ -1269,46 +1277,50 @@ export function registerTools(server, crmClient) {
 
       const results = [];
       for (const op of pending) {
-        const approved = queue.approve(op.id);
-        if (!approved) {
-          results.push({ id: op.id, success: false, reason: 'expired or missing' });
-          continue;
-        }
-
-        // Pre-execution integrity check for milestone updates
-        if (op.type === 'update_milestone' && op.identity?.milestoneNumber) {
-          const recheck = await crmClient.request(op.entitySet, {
-            query: { $select: 'msp_milestonenumber,msp_name,_msp_opportunityid_value' }
-          });
-          if (!recheck.ok) {
-            queue.markFailed(op.id, 'Pre-execution verification failed: milestone no longer accessible');
-            results.push({ id: op.id, success: false, reason: 'milestone no longer accessible' });
+        try {
+          const approved = queue.approve(op.id);
+          if (!approved) {
+            results.push({ id: op.id, success: false, reason: 'expired or missing' });
             continue;
           }
-          const currentNumber = recheck.data?.msp_milestonenumber;
-          if (currentNumber && currentNumber !== op.identity.milestoneNumber) {
-            queue.markFailed(op.id, `Milestone number mismatch: expected ${op.identity.milestoneNumber}, got ${currentNumber}`);
-            results.push({ id: op.id, success: false, reason: `identity mismatch: expected ${op.identity.milestoneNumber}, got ${currentNumber}` });
-            continue;
-          }
-        }
 
-        let result;
-        if (op.type === 'close_task') {
-          result = await crmClient.request(op.entitySet, { method: op.method, body: op.payload });
-          if (!result.ok && result.status !== 204 && op.fallbackEntitySet) {
-            result = await crmClient.request(op.fallbackEntitySet, { method: 'POST', body: op.fallbackPayload });
+          // Pre-execution integrity check for milestone updates
+          if (op.type === 'update_milestone' && op.identity?.milestoneNumber) {
+            const recheck = await crmClient.request(op.entitySet, {
+              query: { $select: 'msp_milestonenumber,msp_name,_msp_opportunityid_value' }
+            });
+            if (!recheck.ok) {
+              queue.markFailed(op.id, 'Pre-execution verification failed: milestone no longer accessible');
+              results.push({ id: op.id, success: false, reason: 'milestone no longer accessible' });
+              continue;
+            }
+            const currentNumber = recheck.data?.msp_milestonenumber;
+            if (currentNumber && currentNumber !== op.identity.milestoneNumber) {
+              queue.markFailed(op.id, `Milestone number mismatch: expected ${op.identity.milestoneNumber}, got ${currentNumber}`);
+              results.push({ id: op.id, success: false, reason: `identity mismatch: expected ${op.identity.milestoneNumber}, got ${currentNumber}` });
+              continue;
+            }
           }
-        } else {
-          result = await crmClient.request(op.entitySet, { method: op.method, body: op.payload });
-        }
 
-        if (result.ok || result.status === 204) {
-          queue.markExecuted(op.id, result.data);
-          results.push({ id: op.id, success: true });
-        } else {
-          queue.markFailed(op.id, result.data?.message);
-          results.push({ id: op.id, success: false, reason: result.data?.message });
+          let result;
+          if (op.type === 'close_task') {
+            result = await crmClient.request(op.entitySet, { method: op.method, body: op.payload });
+            if (!result.ok && result.status !== 204 && op.fallbackEntitySet) {
+              result = await crmClient.request(op.fallbackEntitySet, { method: 'POST', body: op.fallbackPayload });
+            }
+          } else {
+            result = await crmClient.request(op.entitySet, { method: op.method, body: op.payload });
+          }
+
+          if (result.ok || result.status === 204) {
+            queue.markExecuted(op.id, result.data);
+            results.push({ id: op.id, success: true });
+          } else {
+            queue.markFailed(op.id, result.data?.message);
+            results.push({ id: op.id, success: false, reason: result.data?.message });
+          }
+        } catch (err) {
+          results.push({ id: op.id, success: false, reason: err?.message || 'unexpected error' });
         }
       }
 

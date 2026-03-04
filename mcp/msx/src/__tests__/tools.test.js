@@ -882,11 +882,6 @@ describe('registerTools', () => {
     const MILESTONE_GUID = '12345678-1234-1234-1234-123456789abc';
     const OPP_GUID = 'aaaa1111-2222-3333-4444-555566667777';
 
-    // Suppress 'error' events from ApprovalQueue (EventEmitter throws unhandled)
-    beforeEach(() => {
-      getApprovalQueue().on('error', () => {});
-    });
-
     it('execute_operation blocks when milestone number does not match staged identity', async () => {
       // Stage an update with identity
       crm.request.mockImplementation(async (path) => {

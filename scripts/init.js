@@ -106,8 +106,17 @@ function checkPrereqs() {
   const azVersion = tryRun("az version --query '\"azure-cli\"' -o tsv");
   if (azVersion) {
     ok(`Azure CLI ${azVersion}`);
+
+    // Check if the user is actually signed in
+    const account = tryRun("az account show --query user.name -o tsv");
+    if (account) {
+      ok(`Signed in as ${account}`);
+    } else {
+      warn("Azure CLI installed but not signed in — run: az login");
+    }
   } else {
-    warn("Azure CLI not found — needed for CRM authentication (az login).");
+    warn("Azure CLI not found — needed for CRM authentication.");
+    warn("  Install: https://learn.microsoft.com/cli/azure/install-azure-cli");
   }
 
   return passed;
@@ -198,12 +207,32 @@ if (checkMode) {
   const serversOk = initServers();
   if (serversOk) {
     heading("All done ✔");
-    console.log(`
+
+    // Check if already signed in to provide the right next step
+    const account = tryRun("az account show --query user.name -o tsv");
+    if (account) {
+      console.log(`
+  You're signed in as ${account}. Everything is ready!
+
   Next steps:
-    1. az login              (authenticate to Azure / CRM)
-    2. Open this repo in VS Code
-    3. MCP servers auto-start via .vscode/mcp.json
+    1. Open this repo in VS Code:  code .
+    2. MCP servers auto-start via .vscode/mcp.json
+    3. Open Copilot chat (Cmd+Shift+I) and try: "Who am I in MSX?"
+
+  Or use GitHub Copilot CLI:  copilot
 `);
+    } else {
+      console.log(`
+  Next steps:
+    1. Connect to Microsoft VPN
+    2. Sign in to Azure:        az login
+    3. Open this repo in VS Code:  code .
+    4. MCP servers auto-start via .vscode/mcp.json
+    5. Open Copilot chat (Cmd+Shift+I) and try: "Who am I in MSX?"
+
+  Or use GitHub Copilot CLI:  copilot
+`);
+    }
   } else {
     heading("Some steps failed — see errors above");
     process.exit(1);

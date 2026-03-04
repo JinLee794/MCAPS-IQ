@@ -31,12 +31,13 @@ MCAPS Copilot Tools connects GitHub Copilot (in VS Code) to your MSX CRM and Mic
 git clone https://github.com/JinLee794/mcaps-copilot-tools.git
 cd mcaps-copilot-tools
 
-# Install the MSX CRM MCP server
-cd mcp/msx && npm install && cd ../..
-
-# (Optional) Install the Obsidian Intelligence Layer
-cd mcp/oil && npm install && npm run build && cd ../..
+# One command installs everything (both MCP servers + builds)
+npm install
 ```
+
+> **That's it.** `npm install` at the root automatically installs and builds all MCP servers (`mcp/msx` and `mcp/oil`). No need to `cd` into each folder.
+>
+> **Prefer a GUI?** Open the repo in VS Code and run the **"Setup: Install Everything"** task from the Command Palette (`Cmd+Shift+P` → `Tasks: Run Task` → `Setup: Install Everything`).
 
 > **Note:** `mcp/msx` and `mcp/oil` are [git subtrees](https://www.atlassian.com/git/tutorials/git-subtree) — they live in this repo as normal files but are also maintained in their own standalone repos. No special clone flags needed.
 
@@ -73,7 +74,14 @@ Copilot CLI automatically detects `.vscode/mcp.json`, `AGENTS.md`, and `.github/
 
 ### Step 5: Open Copilot and start chatting
 
-Open the GitHub Copilot chat panel (`Ctrl+Shift+I` / `Cmd+Shift+I`) and try one of the example prompts below.
+Open the GitHub Copilot chat panel (`Ctrl+Shift+I` / `Cmd+Shift+I`) and try the built-in getting started prompt:
+
+1. Type `/` in the Copilot chat window
+2. Select **getting-started** — it will verify your environment and suggest your first prompt based on your CRM role
+
+Or just type: `Who am I in MSX?`
+
+> **Something not working?** Run the environment check from the Command Palette: `Cmd+Shift+P` → `Tasks: Run Task` → `Setup: Check Environment`. It will tell you exactly what's missing.
 
 ---
 

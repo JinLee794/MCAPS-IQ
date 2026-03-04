@@ -1,0 +1,43 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Setup: Install Everything",
+      "detail": "Installs all MCP server dependencies and builds what's needed. Run this once after cloning.",
+      "type": "shell",
+      "command": "node scripts/init.js",
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Setup: Check Environment",
+      "detail": "Verifies Node.js, npm, Azure CLI, and MCP servers are all ready — without installing anything.",
+      "type": "shell",
+      "command": "node scripts/init.js --check",
+      "group": "test",
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Setup: Sign in to Azure",
+      "detail": "Opens the Azure CLI login flow. You must be on VPN and use your Microsoft corp account.",
+      "type": "shell",
+      "command": "az login",
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      },
+      "problemMatcher": []
+    }
+  ]
+}

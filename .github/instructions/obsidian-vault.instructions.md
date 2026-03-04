@@ -44,16 +44,16 @@ The vault supports two customer layouts, but **nested is strongly preferred**:
 | **Nested** (preferred) | `Customers/X/X.md` | `opportunities/`, `milestones/` subdirs available | Default for new customers |
 | **Flat** (legacy) | `Customers/X.md` | Cannot store sub-entity notes | Migration recommended |
 
-**Why nested matters**: Operations like `create_opportunity`, `create_milestone`, and entity-level notes require the nested structure (`Customers/X/opportunities/`, `Customers/X/milestones/`). Flat-layout customers cannot use these features.
+**Why nested matters**: Operations like `oil_create_opportunity`, `oil_create_milestone`, and entity-level notes require the nested structure (`Customers/X/opportunities/`, `Customers/X/milestones/`). Flat-layout customers cannot use these features.
 
 **Migration protocol**: When the agent encounters a flat-layout customer file during any workflow:
 1. **Detect**: `check_vault_health()` reports flat-layout customers in `structuralIssues`.
 2. **Propose**: Call `migrate_customer_structure({ customer: "X" })` — this generates a gated diff showing the move.
 3. **Confirm**: The user reviews and confirms the migration. Content is preserved as-is.
-4. **Post-migration**: Sub-entity directories become available for `create_opportunity` / `create_milestone`.
+4. **Post-migration**: Sub-entity directories become available for `oil_create_opportunity` / `oil_create_milestone`.
 
 **When to trigger migration automatically**:
-- Before `create_opportunity` or `create_milestone` — if the target customer uses flat layout, propose migration first.
+- Before `oil_create_opportunity` or `oil_create_milestone` — if the target customer uses flat layout, propose migration first.
 - During `check_vault_health()` — flat-layout customers are surfaced as structural issues.
 - During VAULT-HYGIENE phase — include structural migration in the recommended actions.
 
@@ -95,12 +95,12 @@ The canonical structured data for opportunities and milestones lives in **sub-no
 
 | Entity | Path | Created by | Read by |
 |---|---|---|---|
-| Opportunity | `<customersRoot>/<Customer>/<opportunitiesSubdir>/<Name>.md` | `create_opportunity` | `get_opportunity_context`, `get_customer_context` |
-| Milestone | `<customersRoot>/<Customer>/<milestonesSubdir>/<Name>.md` | `create_milestone` | `get_milestone_context`, `get_customer_context` |
+| Opportunity | `<customersRoot>/<Customer>/<opportunitiesSubdir>/<Name>.md` | `oil_create_opportunity` | `oil_get_opportunity_context`, `get_customer_context` |
+| Milestone | `<customersRoot>/<Customer>/<milestonesSubdir>/<Name>.md` | `oil_create_milestone` | `oil_get_milestone_context`, `get_customer_context` |
 
 Paths are config-driven (see `oil.config.yaml` `schema.customersRoot`, `schema.opportunitiesSubdir`, `schema.milestonesSubdir`). Defaults: `Customers/<Name>/opportunities/<OppName>.md`, `Customers/<Name>/milestones/<MsName>.md`.
 
-Each sub-note has typed YAML frontmatter (e.g., `guid`, `status`, `stage`, `owner`, `salesplay`, `last_validated` for opportunities). This frontmatter is what `get_opportunity_context` / `get_milestone_context` / `prepare_crm_prefetch` read — not the customer file section text.
+Each sub-note has typed YAML frontmatter (e.g., `guid`, `status`, `stage`, `owner`, `salesplay`, `last_validated` for opportunities). This frontmatter is what `oil_get_opportunity_context` / `oil_get_milestone_context` / `prepare_crm_prefetch` read — not the customer file section text.
 
 The `## Opportunities` and `## Milestones` sections in the customer file serve as a **human-readable index** — wikilinks to the sub-notes. They are NOT the source of truth for IDs or status.
 
@@ -115,7 +115,7 @@ Entity sub-notes use a **dual representation** for people and relationships — 
 | Milestone owner | `owner: Bob Chen` | `- **Owner:** [[Bob Chen]]` |
 | Linked opportunity | `opportunity: Azure Migration` | `- **Opportunity:** [[Azure Migration]]` |
 
-**Why dual representation**: Frontmatter must stay as plain strings so `query_notes`, `get_opportunity_context`, and `prepare_crm_prefetch` can read them without stripping brackets. The body wikilinks create Obsidian graph edges so that navigating from a person → their milestones, or from a customer → their opportunities, works via the graph and backlinks panel.
+**Why dual representation**: Frontmatter must stay as plain strings so `query_notes`, `oil_get_opportunity_context`, and `prepare_crm_prefetch` can read them without stripping brackets. The body wikilinks create Obsidian graph edges so that navigating from a person → their milestones, or from a customer → their opportunities, works via the graph and backlinks panel.
 
 **Naming rule for owners**: The `owner` value MUST match a `People/<Name>.md` filename exactly (e.g., `Alice Smith`, not `alice.smith@microsoft.com` or `Smith, Alice`). This enables:
 - `[[Alice Smith]]` in the body to resolve to the People note
@@ -126,7 +126,7 @@ When syncing from CRM, resolve the CRM owner display name to the vault People no
 
 **ID Storage Rule**: MSX identifiers (opportunity GUIDs, account IDs, TPIDs, milestone numbers) belong in **entity sub-note frontmatter** — this is where VAULT-PREFETCH reads them. Account-level IDs (`tpid`, `accountid`) belong in the **customer file frontmatter**. The customer file sections are for narrative context, not structured ID storage. An opportunity sub-note without a `guid` in its frontmatter is incomplete.
 
-> **Migration note**: If the customer file has inline GUIDs in `## Opportunities` (legacy pattern) but no sub-notes exist, create the sub-notes via `create_opportunity` per entity, then simplify the section to wikilinks.
+> **Migration note**: If the customer file has inline GUIDs in `## Opportunities` (legacy pattern) but no sub-notes exist, create the sub-notes via `oil_create_opportunity` per entity, then simplify the section to wikilinks.
 
 ### OIL Tool Reference
 
@@ -138,8 +138,8 @@ The vault is managed by the **Obsidian Intelligence Layer (OIL)** MCP server (`o
 |---|---|---|
 | Vault map & health | `get_vault_context` | *(none)* — returns folder tree, note count, top tags, active customers. **Call first in any new session.** |
 | Customer context | `get_customer_context` | `customer` — returns assembled context: opportunities (with GUIDs), team, meetings, action items, insights |
-| Opportunity context | `get_opportunity_context` | `customer` — returns all opportunities as structured data (frontmatter: GUID, status, stage, owner, salesplay). Prefer sub-notes; falls back to section parsing. |
-| Milestone context | `get_milestone_context` | `customer` — returns all milestones as structured data (frontmatter: ID, number, status, date, owner, linked opportunity). Prefer sub-notes; falls back to section parsing. |
+| Opportunity context | `oil_get_opportunity_context` | `customer` — returns all opportunities as structured data (frontmatter: GUID, status, stage, owner, salesplay). Prefer sub-notes; falls back to section parsing. |
+| Milestone context | `oil_get_milestone_context` | `customer` — returns all milestones as structured data (frontmatter: ID, number, status, date, owner, linked opportunity). Prefer sub-notes; falls back to section parsing. |
 | Person context | `get_person_context` | `person` — returns person profile, customer associations, org type, linked notes |
 | Graph traversal | `query_graph` | `path`, `direction`, `depth`, `filter` — backlinks, forward links, N-hop neighborhood |
 | People→Customer batch | `resolve_people_to_customers` | `people` array — batch-resolves person names to customer associations |
@@ -164,10 +164,10 @@ The vault is managed by the **Obsidian Intelligence Layer (OIL)** MCP server (`o
 | Create customer | `create_customer_file` | Gated | `customer` — scaffolds new customer file |
 | Write note | `write_note` | Gated | `path`, `content` — low-level write, always gated |
 | Batch tags | `apply_tags` | Gated | `paths`, `action`, `tags` — batch tag add/remove |
-| Scaffold opportunity | `create_opportunity` | Gated | `customer`, `name`, `guid`, `status`, `stage`, `owner`, `salesplay` — creates sub-note at `<customersRoot>/<Customer>/<opportunitiesSubdir>/<Name>.md` with typed frontmatter |
-| Update opportunity | `update_opportunity` | Gated | `customer`, `name`, `fields` — updates frontmatter on an existing opportunity sub-note. Auto-sets `last_validated`. |
-| Scaffold milestone | `create_milestone` | Gated | `customer`, `name`, `milestoneid`, `number`, `status`, `milestonedate`, `owner`, `opportunity` — creates sub-note at `<customersRoot>/<Customer>/<milestonesSubdir>/<Name>.md` |
-| Update milestone | `update_milestone` | Gated | `customer`, `name`, `fields` — updates frontmatter on an existing milestone sub-note |
+| Scaffold opportunity | `oil_create_opportunity` | Gated | `customer`, `name`, `guid`, `status`, `stage`, `owner`, `salesplay` — creates sub-note at `<customersRoot>/<Customer>/<opportunitiesSubdir>/<Name>.md` with typed frontmatter |
+| Update opportunity | `oil_update_opportunity` | Gated | `customer`, `name`, `fields` — updates frontmatter on an existing opportunity sub-note. Auto-sets `last_validated`. |
+| Scaffold milestone | `oil_create_milestone` | Gated | `customer`, `name`, `milestoneid`, `number`, `status`, `milestonedate`, `owner`, `opportunity` — creates sub-note at `<customersRoot>/<Customer>/<milestonesSubdir>/<Name>.md` |
+| Update milestone | `oil_update_milestone` | Gated | `customer`, `name`, `fields` — updates frontmatter on an existing milestone sub-note |
 | Migrate structure | `migrate_customer_structure` | Gated | `customer` (optional) — detects flat-layout customers and proposes move to nested layout. Omit `customer` to scan all. |
 | Manage pending | `manage_pending_writes` | — | `action` — list, confirm, or reject queued writes |
 
@@ -259,19 +259,19 @@ Steps:
 
 Steps:
 1. Run availability guard.
-2. **Read vault state first**: Call `get_opportunity_context({ customer })` and/or `get_milestone_context({ customer })` to get the current vault entities.
+2. **Read vault state first**: Call `oil_get_opportunity_context({ customer })` and/or `oil_get_milestone_context({ customer })` to get the current vault entities.
 3. **Diff against CRM results**: Compare vault entities (by GUID / milestone ID) against the CRM data you just retrieved. Classify each entity as: **new** (in CRM, not in vault), **changed** (in both but fields differ), or **current** (no update needed).
 4. **Ensure nested layout**: If the target customer uses flat layout (`Customers/X.md`), call `migrate_customer_structure({ customer })` first. Entity sub-notes require the nested layout.
 5. **Loop entity writes**:
-   - For each **new** opportunity: `create_opportunity({ customer, name, guid, status, stage, owner, salesplay })`
-   - For each **changed** opportunity: `update_opportunity({ customer, name, fields: { ... } })`
-   - For each **new** milestone: `create_milestone({ customer, name, milestoneid, number, status, milestonedate, owner, opportunity })`
-   - For each **changed** milestone: `update_milestone({ customer, name, fields: { ... } })`
+   - For each **new** opportunity: `oil_create_opportunity({ customer, name, guid, status, stage, owner, salesplay })`
+   - For each **changed** opportunity: `oil_update_opportunity({ customer, name, fields: { ... } })`
+   - For each **new** milestone: `oil_create_milestone({ customer, name, milestoneid, number, status, milestonedate, owner, opportunity })`
+   - For each **changed** milestone: `oil_update_milestone({ customer, name, fields: { ... } })`
 6. **Confirm gated writes**: All entity writes are gated. Call `manage_pending_writes({ action: "list" })` to review the batch, then confirm.
 7. **Update customer file index** (optional): After entity sub-notes are created, update `## Opportunities` / `## Milestones` sections with wikilinks to the new sub-notes via `update_customer_file`.
 
 **Critical rules**:
-- **One tool call per entity** — loop `create_opportunity` per CRM opportunity. Do NOT aggregate into a single `write_note` or `update_customer_file` call.
+- **One tool call per entity** — loop `oil_create_opportunity` per CRM opportunity. Do NOT aggregate into a single `write_note` or `update_customer_file` call.
 - **Never build markdown manually** — the entity tools handle frontmatter schema, path resolution, and gating. Manual markdown bypasses all of this.
 - **Diff before writing** — don't recreate entities that already exist in vault. Use GUID/milestone-ID matching to skip unchanged entities.
 - For large syncs (>20 entities), confirm with the user before executing the batch.
@@ -283,9 +283,9 @@ Steps:
 
 | Pattern | Status | Why |
 |---|---|---|
-| Loop: `create_opportunity` per CRM opp, `create_milestone` per CRM ms | ✅ Correct | Proper sub-notes with typed frontmatter; gated |
-| `get_opportunity_context` → diff → only write **new/changed** entities | ✅ Correct | Avoids redundant writes; idempotent |
-| `update_opportunity({ fields: { status, stage } })` to refresh stale data | ✅ Correct | Preserves sub-note structure; stamps `last_validated` |
+| Loop: `oil_create_opportunity` per CRM opp, `oil_create_milestone` per CRM ms | ✅ Correct | Proper sub-notes with typed frontmatter; gated |
+| `oil_get_opportunity_context` → diff → only write **new/changed** entities | ✅ Correct | Avoids redundant writes; idempotent |
+| `oil_update_opportunity({ fields: { status, stage } })` to refresh stale data | ✅ Correct | Preserves sub-note structure; stamps `last_validated` |
 | `update_customer_file({ sections: { "Opportunities": raw_markdown } })` | ⚠️ Fragile | Loses frontmatter structure; only use for the summary index, not entity data |
 | `write_note` with manually assembled opportunity markdown | ❌ Bypasses | Skips entity-aware tools; no typed frontmatter; no GUID indexing |
 | Shell script / Python to build `.md` files and write to vault directory | ❌ Bypasses | Skips OIL gating entirely; no audit log; no diff review |
@@ -318,7 +318,7 @@ Steps:
 | After validated CRM findings | VAULT-PROMOTE | `promote_findings` → customer file `## Agent Insights` |
 | Connect evidence capture | VAULT-PROMOTE | `capture_connect_hook` → customer file + backup |
 | Multi-customer scope | VAULT-PREFETCH | Vault roster → `prepare_crm_prefetch` → scoped CRM queries |
-| CRM → vault entity sync | VAULT-SYNC | `get_opportunity_context` → diff vs CRM → loop `create_opportunity` / `update_opportunity` per entity |
+| CRM → vault entity sync | VAULT-SYNC | `oil_get_opportunity_context` → diff vs CRM → loop `oil_create_opportunity` / `oil_update_opportunity` per entity |
 | Periodic cleanup | VAULT-HYGIENE | `check_vault_health` → `get_drift_report` → user review |
 
 **Freshness rule**: Use vault for *who/what/why* context. Use CRM for *current state*. Vault scopes first, CRM validates second.
