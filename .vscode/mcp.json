@@ -25,14 +25,14 @@
 		// Subtree: mcp/oil (https://github.com/JinLee794/Obsidian-Intelligence-Layer)
 		// Setup: cd mcp/oil && npm install && npm run build
 		// If not configured, workflows fall back to stateless CRM-only operation.
-		// "oil": {
-		// 	"type": "stdio",
-		// 	"command": "node",
-		// 	"args": ["mcp/oil/dist/index.js"],
-		// 	"env": {
-		// 		"OBSIDIAN_VAULT_PATH": "${input:obsidianVaultPath}"
-		// 	}
-		// },
+		"oil": {
+			"type": "stdio",
+			"command": "node",
+			"args": ["mcp/oil/dist/index.js"],
+			"env": {
+				"OBSIDIAN_VAULT_PATH": "${input:obsidianVaultPath}"
+			}
+		},
 
 	},
 	"inputs": [

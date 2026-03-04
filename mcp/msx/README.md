@@ -5,7 +5,7 @@ MCP server for Dynamics 365 / MSX CRM operations. Gives GitHub Copilot (and any 
 ## Features
 
 - **Read tools** — query opportunities, milestones, tasks, accounts, and metadata via OData
-- **Write tools** — create/update/close tasks, update milestones — all staged for approval before execution
+- **Write tools** — create milestones, create/update/close tasks, update milestones — all staged for approval before execution
 - **Approval queue** — every CRM write is staged, previewed (before → after diff), and executed only after explicit human confirmation
 - **Batch operations** — stage multiple changes, review all at once, execute in one shot
 - **Azure CLI auth** — authenticates via `az account get-access-token` (no secrets in config)
@@ -95,6 +95,7 @@ All write tools **stage** the operation and return a preview. Nothing is written
 
 | Tool | Description |
 |---|---|
+| `create_milestone` | Create a milestone linked to an opportunity |
 | `create_task` | Create a task linked to a milestone |
 | `update_task` | Update task fields (subject, due date, description, status) |
 | `close_task` | Close a task via CloseTask action |

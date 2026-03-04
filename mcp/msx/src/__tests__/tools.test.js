@@ -47,6 +47,7 @@ describe('registerTools', () => {
     expect(toolNames).toContain('list_opportunities');
     expect(toolNames).toContain('get_my_active_opportunities');
     expect(toolNames).toContain('get_milestones');
+    expect(toolNames).toContain('create_milestone');
     expect(toolNames).toContain('create_task');
     expect(toolNames).toContain('update_task');
     expect(toolNames).toContain('close_task');
@@ -589,6 +590,53 @@ describe('registerTools', () => {
       expect(parsed.operationId).toMatch(/^OP-/);
       expect(parsed.payload.subject).toBe('Architecture Design Session');
       expect(parsed.payload.msp_taskcategory).toBe(861980004);
+    });
+  });
+
+  describe('create_milestone', () => {
+    it('validates opportunityId', async () => {
+      const result = await callTool(server, 'create_milestone', {
+        opportunityId: 'bad',
+        name: 'Test Milestone'
+      });
+      expect(result.isError).toBe(true);
+    });
+
+    it('requires name', async () => {
+      const result = await callTool(server, 'create_milestone', {
+        opportunityId: '12345678-1234-1234-1234-123456789abc'
+      });
+      expect(result.isError).toBe(true);
+    });
+
+    it('stages create operation with expected bindings and fields', async () => {
+      crm.request.mockImplementation(async (path) => {
+        if (path.startsWith('opportunities(')) {
+          return { ok: true, status: 200, data: { name: 'FY26 - Elevance | Benefits AI | Associate | #AIDesignWinHLS' } };
+        }
+        return { ok: true, status: 200, data: {} };
+      });
+
+      const result = await callTool(server, 'create_milestone', {
+        opportunityId: '12345678-1234-1234-1234-123456789abc',
+        name: 'FY25 - Benefits - AI App Service Performance Tuning',
+        milestoneDate: '2026-03-27',
+        monthlyUse: 1500,
+        milestoneStatus: 861980000,
+        ownerId: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
+      });
+
+      expect(result.isError).toBeUndefined();
+      const parsed = JSON.parse(result.content[0].text);
+      expect(parsed.staged).toBe(true);
+      expect(parsed.operationId).toMatch(/^OP-/);
+      expect(parsed.payload.msp_name).toBe('FY25 - Benefits - AI App Service Performance Tuning');
+      expect(parsed.payload['msp_OpportunityId@odata.bind']).toBe('/opportunities(12345678-1234-1234-1234-123456789abc)');
+      expect(parsed.payload.msp_milestonedate).toBe('2026-03-27');
+      expect(parsed.payload.msp_monthlyuse).toBe(1500);
+      expect(parsed.payload.msp_milestonestatus).toBe(861980000);
+      expect(parsed.payload['ownerid@odata.bind']).toBe('/systemusers(aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee)');
+      expect(parsed.description).toContain('Benefits AI');
     });
   });
 

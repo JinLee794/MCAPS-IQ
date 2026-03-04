@@ -409,6 +409,102 @@ export function registerTools(server, crmClient) {
 
   // ── create_task ─────────────────────────────────────────────
   server.tool(
+    'create_milestone',
+    'Create an engagement milestone linked to an opportunity. Supports date, monthly use, status, category, commitment, owner, workload, and comments.',
+    {
+      opportunityId: z.string().describe('Opportunity GUID to link the milestone to'),
+      name: z.string().describe('Milestone name/title'),
+      milestoneDate: z.string().optional().describe('Milestone date in YYYY-MM-DD format'),
+      monthlyUse: z.number().optional().describe('Monthly use value'),
+      milestoneCategory: z.number().optional().describe('Milestone category code'),
+      commitmentRecommendation: z.number().optional().describe('Commitment recommendation code'),
+      milestoneStatus: z.number().optional().describe('Milestone status code'),
+      workloadId: z.string().optional().describe('Workload GUID'),
+      ownerId: z.string().optional().describe('System user GUID to assign as owner'),
+      transactionCurrencyId: z.string().optional().describe('Transaction currency GUID'),
+      forecastComments: z.string().optional().describe('Forecast comments text')
+    },
+    async ({
+      opportunityId,
+      name,
+      milestoneDate,
+      monthlyUse,
+      milestoneCategory,
+      commitmentRecommendation,
+      milestoneStatus,
+      workloadId,
+      ownerId,
+      transactionCurrencyId,
+      forecastComments
+    }) => {
+      const oppNid = normalizeGuid(opportunityId);
+      if (!isValidGuid(oppNid)) return error('Invalid opportunityId GUID');
+      if (!name) return error('name is required');
+
+      const oppLookup = await crmClient.request(`opportunities(${oppNid})`, {
+        query: { $select: 'name' }
+      });
+      if (!oppLookup.ok) {
+        return error(`Opportunity lookup failed (${oppLookup.status}): ${oppLookup.data?.message || 'not found'}`);
+      }
+      const opportunityName = oppLookup.data?.name || null;
+
+      const payload = {
+        msp_name: name,
+        'msp_OpportunityId@odata.bind': `/opportunities(${oppNid})`
+      };
+
+      if (milestoneDate !== undefined) payload.msp_milestonedate = milestoneDate;
+      if (monthlyUse !== undefined) payload.msp_monthlyuse = monthlyUse;
+      if (milestoneCategory !== undefined) payload.msp_milestonecategory = milestoneCategory;
+      if (commitmentRecommendation !== undefined) payload.msp_commitmentrecommendation = commitmentRecommendation;
+      if (milestoneStatus !== undefined) payload.msp_milestonestatus = milestoneStatus;
+      if (forecastComments !== undefined) payload.msp_forecastcomments = forecastComments;
+
+      if (workloadId) {
+        const workloadNid = normalizeGuid(workloadId);
+        if (!isValidGuid(workloadNid)) return error('Invalid workloadId GUID');
+        payload['msp_WorkloadlkId@odata.bind'] = `/msp_workloads(${workloadNid})`;
+      }
+
+      if (ownerId) {
+        const ownerNid = normalizeGuid(ownerId);
+        if (!isValidGuid(ownerNid)) return error('Invalid ownerId GUID');
+        payload['ownerid@odata.bind'] = `/systemusers(${ownerNid})`;
+      }
+
+      if (transactionCurrencyId) {
+        const currencyNid = normalizeGuid(transactionCurrencyId);
+        if (!isValidGuid(currencyNid)) return error('Invalid transactionCurrencyId GUID');
+        payload['transactioncurrencyid@odata.bind'] = `/transactioncurrencies(${currencyNid})`;
+      }
+
+      const queue = getApprovalQueue();
+      const op = queue.stage({
+        type: 'create_milestone',
+        entitySet: 'msp_engagementmilestones',
+        method: 'POST',
+        payload,
+        beforeState: null,
+        description: `Create milestone "${name}" on opportunity ${opportunityName || oppNid}`
+      });
+
+      return text({
+        staged: true,
+        operationId: op.id,
+        description: op.description,
+        identity: {
+          opportunityId: oppNid,
+          opportunityName
+        },
+        payload,
+        message: `Staged ${op.id}: ${op.description}. Approve via execute_operation or from the approval UI.`
+      });
+    }
+  );
+
+  // ── create_task ─────────────────────────────────────────────
+  server.tool(
     'create_task',
     'Create a task linked to an engagement milestone. Optionally specify category, subject, due date, and owner.',
     {
